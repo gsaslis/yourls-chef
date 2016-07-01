@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: yourls-cookbook
-# Recipe:: default
+# Recipe:: database
 #
 # The MIT License (MIT)
 #
@@ -24,44 +24,49 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-
-# Download and extract yourls source
-ark 'yourls' do
-  url node['yourls']['url']
-  path node['yourls']['path']
-  owner node['apache']['user']
-  action :put
-  not_if { ::File.exists?("#{node['yourls']['path']}/yourls") }
+mysql2_chef_gem 'default' do
+  client_version node['mysql']['version'] if node['mysql'] && node['mysql']['version']
+  action :install
 end
 
-template "#{node['yourls']['path']}/yourls/user/config.php" do
-  source 'yourls_config.php.erb'
-  variables({
-    :db_pass => node['yourls']['mysql_yourls_pass'],
-    :yourls_url => 'default-ubuntu-1404:8880',
-    :usernames_passwords => {
-      :yourls => :a_random_pass
-    }
-  })
-  owner node['apache']['user']
-  group node['apache']['group']
+mysql_service 'yourls' do
+  bind_address '127.0.0.1'
+  port '3306'
+  version '5.6'
+  initial_root_password node['yourls']['mysql_root_pass']
+  action [:create, :start]
 end
 
-file "#{node['yourls']['path']}/yourls/.htaccess" do
-  content 'FallBackResource yourls-loader.php'
-  mode '0755'
-  owner node['apache']['user']
-  group node['apache']['group']
+mysql_admin_connection_info = {
+  host: '127.0.0.1',
+  port: '3306',
+  username: 'root',
+  password: node['yourls']['mysql_root_pass']
+}
+
+# create mysql db
+mysql_database 'yourls' do
+  connection(
+    :host     => '127.0.0.1',
+    :username => 'root',
+    :password => node['yourls']['mysql_root_pass']
+  )
+  action :create
 end
 
-web_app 'yourls' do
-  server_name node['hostname']
-  server_aliases [ node['fqdn'] ]
-  server_port 8880
-  docroot "#{node['yourls']['path']}/yourls"
-  allow_override 'All'
-  # template 'web_app.conf.erb'
-  # cookbook 'yourls-cookbook'
-  cookbook 'apache2'
-  notifies :restart, 'service[apache2]'
+# Create a mysql user but grant no privileges
+# mysql_database_user 'yourls' do
+#   connection mysql_admin_connection_info
+#   password node['yourls']['mysql_yourls_pass']
+#   action :create
+# end
+
+# grant privileges on new db
+mysql_database_user 'yourls' do
+  connection mysql_admin_connection_info
+  password node['yourls']['mysql_yourls_pass']
+  database_name 'yourls'
+  host '%'
+  privileges [:select, :update, :insert, :create]
+  action [:create, :grant]
 end

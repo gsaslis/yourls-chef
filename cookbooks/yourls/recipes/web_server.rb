@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: yourls-cookbook
-# Recipe:: default
+# Recipe:: web_server
 #
 # The MIT License (MIT)
 #
@@ -24,44 +24,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+include_recipe 'php'
+package %w[ php5-mysql ]
 
-# Download and extract yourls source
-ark 'yourls' do
-  url node['yourls']['url']
-  path node['yourls']['path']
-  owner node['apache']['user']
-  action :put
-  not_if { ::File.exists?("#{node['yourls']['path']}/yourls") }
-end
+include_recipe 'apache2'
+include_recipe 'apache2::mod_php5'
+include_recipe 'apache2::mod_rewrite'
 
-template "#{node['yourls']['path']}/yourls/user/config.php" do
-  source 'yourls_config.php.erb'
-  variables({
-    :db_pass => node['yourls']['mysql_yourls_pass'],
-    :yourls_url => 'default-ubuntu-1404:8880',
-    :usernames_passwords => {
-      :yourls => :a_random_pass
-    }
-  })
-  owner node['apache']['user']
-  group node['apache']['group']
-end
-
-file "#{node['yourls']['path']}/yourls/.htaccess" do
-  content 'FallBackResource yourls-loader.php'
-  mode '0755'
-  owner node['apache']['user']
-  group node['apache']['group']
-end
-
-web_app 'yourls' do
-  server_name node['hostname']
-  server_aliases [ node['fqdn'] ]
-  server_port 8880
-  docroot "#{node['yourls']['path']}/yourls"
-  allow_override 'All'
-  # template 'web_app.conf.erb'
-  # cookbook 'yourls-cookbook'
-  cookbook 'apache2'
-  notifies :restart, 'service[apache2]'
+apache_module 'mpm_prefork'
+apache_module 'mpm_event' do
+  enable false
 end

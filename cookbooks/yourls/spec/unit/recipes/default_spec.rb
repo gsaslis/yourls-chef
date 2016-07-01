@@ -1,5 +1,5 @@
 #
-# Cookbook Name:: yourls
+# Cookbook Name:: yourls-cookbook
 # Spec:: default
 #
 # The MIT License (MIT)
@@ -27,15 +27,40 @@
 
 require 'spec_helper'
 
-describe 'yourls::default' do
+describe 'yourls-cookbook::default' do
   context 'When all attributes are default, on an unspecified platform' do
     let(:chef_run) do
-      runner = ChefSpec::ServerRunner.new
-      runner.converge(described_recipe)
+      runner = ChefSpec::ServerRunner.new do |node|
+        node.set['yourls']['path'] = '/etc/apache2/sites-available/yourls'
+        node.set['yourls']['url'] = 'https://github.com/YOURLS/YOURLS/archive/1.7.1.tar.gz'
+        node.set['apache']['dir'] = '/etc/apache2'
+
+        stub_command("/usr/sbin/apache2 -t").and_return(0)
+      end.converge(described_recipe)
     end
 
     it 'converges successfully' do
       expect { chef_run }.to_not raise_error
     end
+
+    it 'downloads yourls from source' do
+      expect(chef_run).to put_ark('yourls').with(
+        url: 'https://github.com/YOURLS/YOURLS/archive/1.7.1.tar.gz',
+        path: '/etc/apache2/sites-available/yourls'
+      )
+    end
+
+    # it 'installs yourls in apache' do
+      # TODO
+    # end
+
+    it 'installs yourls plugins' do
+      # TODO
+    end
+
+    it 'modifies the default yourls config file' do
+      # TODO
+    end
+
   end
 end
