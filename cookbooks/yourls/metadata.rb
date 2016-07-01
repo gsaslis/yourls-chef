@@ -1,0 +1,7 @@
+name 'yourls'
+maintainer 'Yorgos Saslis'
+maintainer_email 'you@example.com'
+license 'mit'
+description 'Installs/Configures yourls'
+long_description 'Installs/Configures yourls'
+version '0.1.0'
