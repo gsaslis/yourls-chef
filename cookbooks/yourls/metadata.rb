@@ -1,6 +1,6 @@
 name 'yourls-cookbook'
 maintainer 'Yorgos Saslis'
-maintainer_email 'g.saslis@gmail.com'
+maintainer_email ''
 license 'mit'
 description 'Installs/Configures yourls-cookbook'
 long_description 'Installs/Configures yourls-cookbook'
